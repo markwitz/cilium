@@ -329,6 +329,22 @@ handle_ipv6_cont(struct __ctx_buff *ctx, __u32 secctx, const bool from_host,
 	}
 #endif /* ENABLE_SRV6 */
 
+	if (is_defined(ENABLE_WIREGUARD) && CONFIG(enable_identity_mark) &&
+	    CONFIG(encryption_strict_ingress)) {
+		/* When WireGuard is enabled with strict ingress, drop
+		 * cluster-internal-source traffic that didn't arrive via the
+		 * WireGuard decrypt path. Legitimate decrypted traffic is
+		 * delivered directly from bpf_wireguard.c (BPF host routing)
+		 * or returns to the stack with MARK_MAGIC_DECRYPT set, neither
+		 * of which re-enters this function from a netdev.
+		 */
+		if (!from_host && !ctx_is_decrypt(ctx) &&
+		    identity_is_cluster(secctx) &&
+		    !identity_is_remote_node(secctx) &&
+		    !identity_is_host(secctx))
+			return DROP_UNENCRYPTED_TRAFFIC;
+	}
+
 #ifndef ENABLE_HOST_ROUTING
 	/* See the equivalent v4 path for comments */
 	if (!from_host)
@@ -734,6 +750,22 @@ handle_ipv4_cont(struct __ctx_buff *ctx, __u32 secctx, const bool from_host,
 		}
 	}
 #endif /* ENABLE_HOST_FIREWALL */
+
+	if (is_defined(ENABLE_WIREGUARD) && CONFIG(enable_identity_mark) &&
+	    CONFIG(encryption_strict_ingress)) {
+		/* When WireGuard is enabled with strict ingress, drop
+		 * cluster-internal-source traffic that didn't arrive via the
+		 * WireGuard decrypt path. Legitimate decrypted traffic is
+		 * delivered directly from bpf_wireguard.c (BPF host routing)
+		 * or returns to the stack with MARK_MAGIC_DECRYPT set, neither
+		 * of which re-enters this function from a netdev.
+		 */
+		if (!from_host && !ctx_is_decrypt(ctx) &&
+		    identity_is_cluster(secctx) &&
+		    !identity_is_remote_node(secctx) &&
+		    !identity_is_host(secctx))
+			return DROP_UNENCRYPTED_TRAFFIC;
+	}
 
 #ifndef ENABLE_HOST_ROUTING
 	/* Without bpf_redirect_neigh() helper, we cannot redirect a
