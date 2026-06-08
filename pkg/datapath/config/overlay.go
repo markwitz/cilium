@@ -30,8 +30,6 @@ func Overlay(lnc *Config, link netlink.Link) any {
 		cfg.VTEPMask = byteorder.NetIPAddrToHost32(option.Config.VtepCidrMask)
 	}
 
-	cfg.EncryptionStrictIngress = option.Config.EnableEncryptionStrictModeIngress
-
 	cfg.EphemeralMin = lnc.EphemeralMin
 
 	cfg.TunnelProtocol = lnc.TunnelProtocol
